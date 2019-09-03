@@ -2,59 +2,105 @@ using System;
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
 using System.Threading;
-//using SecretLabs.NETMF.Hardware.NetduinoPlus;
 using N = SecretLabs.NETMF.Hardware.NetduinoPlus;
 //using Netduino.Foundation;
 using Netduino.Foundation.Sensors.Atmospheric;
 using Netduino.Foundation.Displays;
 using Netduino.Foundation.Displays.LCD;
+using Microsoft.SPOT.IO;
+using System.IO;
+using System.Text;
 
 namespace ChickenWatchdog
 {
     public class Program
     {
-        static ITextDisplay lcd;
-        static BME280 sensor;
+        //static ITextDisplay lcd;
+        //static BME280 sensor;
+
+        public static void OutputSDInfo()
+        {
+            var vInfo = new VolumeInfo("SD");
+
+            if (vInfo != null)
+            {
+                Debug.Print("Is Formatted: " + vInfo.IsFormatted.ToString());
+                Debug.Print("Total Free Space: " + vInfo.TotalFreeSpace.ToString());
+                Debug.Print("Total Size: " + vInfo.TotalSize.ToString());
+                Debug.Print("File System: " + vInfo.FileSystem);
+            }
+            else
+            {
+                Debug.Print("There doesn't appear to be an SD card in the device.");
+            }
+
+        }
 
         public static void Main()
         {
-            lcd = new Lcd2004(N.Pins.GPIO_PIN_D5, N.Pins.GPIO_PIN_D7, N.Pins.GPIO_PIN_D8, N.Pins.GPIO_PIN_D9, N.Pins.GPIO_PIN_D10, N.Pins.GPIO_PIN_D11);
-            sensor = new BME280(updateInterval: 0);
+            // some debug output for funsies 
+            OutputSDInfo();
 
-            string displayMessageLine1Prior = "";
-            string displayMessageLine1;
-            string displayMessageLine2Prior = "";
-            string displayMessageLine2;
-            string displayMessageLine3Prior = "";
-            string displayMessageLine3;
-            //string displayMessageLine4;
-            while (true)
+            var volume = new VolumeInfo("SD");
+
+            // check to see if there's an SD card inserted
+            if (volume != null)
             {
-                //  Make the sensor take new readings.
-                sensor.Update();
 
-                //  Prepare a message for the user and output to the LCD
-                displayMessageLine1 = "Temperature: " + sensor.Temperature.ToString("F1") + " C";
-                displayMessageLine2 = "Humidity: " + sensor.Humidity.ToString("F1") + " %";
-                displayMessageLine3 = "Pressure: " + (sensor.Pressure / 100).ToString("F0") + " hPa";
+                // "SD" is the volume name,
+                var path = Path.Combine("SD", "test.txt");
 
-                if (displayMessageLine1 != displayMessageLine1Prior
-                    || displayMessageLine2 != displayMessageLine2Prior
-                    || displayMessageLine3 != displayMessageLine3Prior)
-                {
-                    lcd.Clear();
-                    lcd.WriteLine(displayMessageLine1, 0);
-                    lcd.WriteLine(displayMessageLine2, 1);
-                    lcd.WriteLine(displayMessageLine3, 2);
-                }
+                // write some text to a file
+                File.WriteAllBytes(path, Encoding.UTF8.GetBytes("Foooooooo"));
 
-                displayMessageLine1Prior = displayMessageLine1;
-                displayMessageLine2Prior = displayMessageLine2;
-                displayMessageLine3Prior = displayMessageLine3;
-
-                Thread.Sleep(2000);
+                // Must call flush to write immediately. Otherwise, there's no guarantee 
+                // as to when the file is written. 
+                volume.FlushAll();
             }
-            
+            else
+            {
+                Debug.Print("There doesn't appear to be an SD card inserted");
+            }
+
+            // 6. Display sensor data on multiline LCD
+            //lcd = new Lcd2004(N.Pins.GPIO_PIN_D5, N.Pins.GPIO_PIN_D7, N.Pins.GPIO_PIN_D8, N.Pins.GPIO_PIN_D9, N.Pins.GPIO_PIN_D10, N.Pins.GPIO_PIN_D11);
+            //sensor = new BME280(updateInterval: 0);
+
+            //string displayMessageLine1Prior = "";
+            //string displayMessageLine1;
+            //string displayMessageLine2Prior = "";
+            //string displayMessageLine2;
+            //string displayMessageLine3Prior = "";
+            //string displayMessageLine3;
+            ////string displayMessageLine4;
+            //while (true)
+            //{
+            //    //  Make the sensor take new readings.
+            //    sensor.Update();
+
+            //    //  Prepare a message for the user and output to the LCD
+            //    displayMessageLine1 = "Temperature: " + sensor.Temperature.ToString("F1") + " C";
+            //    displayMessageLine2 = "Humidity: " + sensor.Humidity.ToString("F1") + " %";
+            //    displayMessageLine3 = "Pressure: " + (sensor.Pressure / 100).ToString("F0") + " hPa";
+
+            //    if (displayMessageLine1 != displayMessageLine1Prior
+            //        || displayMessageLine2 != displayMessageLine2Prior
+            //        || displayMessageLine3 != displayMessageLine3Prior)
+            //    {
+            //        // WriteLine does a ClearLine, so no need to clear.
+            //        //lcd.Clear();
+            //        lcd.WriteLine(displayMessageLine1, 0);
+            //        lcd.WriteLine(displayMessageLine2, 1);
+            //        lcd.WriteLine(displayMessageLine3, 2);
+            //    }
+
+            //    displayMessageLine1Prior = displayMessageLine1;
+            //    displayMessageLine2Prior = displayMessageLine2;
+            //    displayMessageLine3Prior = displayMessageLine3;
+
+            //    Thread.Sleep(2000);
+            //}
+
             //Debug.Print(DateTime.Now.ToString("yyyyMMdd-HH:mm:ss"));
 
             // 5: Display stuff on a multi-line display
